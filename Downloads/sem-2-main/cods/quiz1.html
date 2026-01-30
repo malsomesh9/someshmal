@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <script>
+        let searchQuery = " Learn JavaScript Functions Arrow IIFE ";
+        // Trim the input string and print the cleaned value and its length
+        console.log(searchQuery.trim());
+        console.log(searchQuery.length);
+        //Convert the cleaned string to lowercase and uppercase
+        console.log(searchQuery.trim().toLowerCase());
+        console.log(searchQuery.trim().toUpperCase());
+        console.log(searchQuery.substring(7,17));
+        console.log(searchQuery.slice(7,17));
+        console.log(searchQuery.includes(`functions`));
+        console.log(searchQuery.includes(`arrow`));
+        console.log(searchQuery.includes(`iife`));
+        //Print the character at index 6 and the ASCII value of the first character
+        console.log(searchQuery.charAt(6));
+        console.log(searchQuery.charCodeAt(0));
+        //Perform a case-insensitive check for the word 'javascript'
+        console.log(searchQuery.toLowerCase().includes('javascript'));
+        
+    </script>
+</body>
+</html>

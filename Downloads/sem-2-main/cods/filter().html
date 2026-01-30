@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <script>
+      // .filter() = creates a new array by filtering
+      //              out elements
+
+      const words = [
+        "apple",
+        "orange",
+        "banana",
+        "kiwi",
+        "pomegranate",
+        "coconut",
+      ];
+
+      const shortWords = words.filter(getShortWords);
+      const longWords = words.filter(getLongWords);
+
+      console.log(longWords);
+
+      function getShortWords(element) {
+        return element.length <= 6;
+      }
+
+      function getLongWords(element) {
+        return element.length > 6;
+      }
+
+      // let nums = [1, 2, 3, 4, 5];
+      // let evenNums = nums.filter(isEven);
+
+      // console.log(evenNums);
+
+      // function isEven(element){
+      //     return element % 2 === 0;
+      // }
+      // function isOdd(element){
+      //     return element % 2 !== 0;
+      //}
+    </script>
+  </body>
+</html>

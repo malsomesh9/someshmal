@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <h1></h1>
+    <script>
+      // callback = a function that is passed as an argument
+      // to another function.
+      //callback = a function that is passed as an argument to another function
+
+      // used to handle asynchronous operations:
+      // 1. Reading a file
+      // 2. Network requests
+      // 3. Interacting with databases
+
+      // "Hey, when you're done, call this next."
+
+      goodbye(leave);
+      // function hello(){
+      //     console.log("hello");
+
+      // }
+      // function wait(){
+      //     console.log("wait");
+      // }
+      function leave() {
+        console.log("leave!");
+      }
+      function goodbye(callback) {
+        console.log("goodbye!");
+        callback();
+      }
+      //   let myH1 = document.querySelector("h1");
+      //   sum(displayContent, 2, 3);
+      //   function sum(callback, x, y) {
+      //     let add = x + y;
+      //     callback(add);
+      //   }
+      //   function displayConsole(add) {
+      //     console.log(add);
+      //   }
+      //   function displayContent(add) {
+      //     myH1.textContent = add;
+      //   }
+    </script>
+  </body>
+</html>

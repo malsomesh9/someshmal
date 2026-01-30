@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <script>
+      function funcOne(callback) {
+        setTimeout(() => {
+          console.log("Task 1");
+          callback(); // Call the next function ONLY after Task 1 is done
+        }, 3000);
+      }
+
+      function funcTwo() {
+        console.log("Task 2");
+        console.log("Task 3");
+        console.log("Task 4");
+      }
+
+      // Usage
+      funcOne(funcTwo);
+    </script>
+  </body>
+</html>
