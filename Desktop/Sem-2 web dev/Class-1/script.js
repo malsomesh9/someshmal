@@ -1,5 +1,5 @@
 function calculatePrice1(quantity){
-    let pricce=quantity*500;
+    let price=quantity*500;
 
     if(price > 10){
         price *= 0.9;

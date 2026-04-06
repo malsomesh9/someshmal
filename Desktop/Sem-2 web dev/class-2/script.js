@@ -13,24 +13,35 @@ searchBtn.addEventListener("click", () => {
 });
 
 async function fetchWeather(city) {
-  const response = await fetch(`https://api.weatherapi.com/v1/current.json?key=${API_KEY}&q=${city}&aqi=no`);
-  const data = await response.json();
-  console.log(data); // check API response
-      if (data.error) {
-        alert(data.error.message);
-        return;
-      }
-
-      console.log(data); // check API response
-      alert(`Temperature in ${data.location.name}: ${data.current.temp_c}°C`);
-      updateWeatherUI(data);
+  try {
+    const response = await fetch(`https://api.weatherapi.com/v1/current.json?key=${API_KEY}&q=${city}&aqi=no`);
+    const data = await response.json();
+    if (data.error) {
+      alert(data.error.message);
+      return;
     }
-    function updateWeatherUI(data) {
-  const temperature = document.getElementById("temperature");
-  const location = document.getElementById("location");
-  const time = document.getElementById("time"); 
-  const day = document.getElementById("day");
-  const date= document.getElementById("date");
+    updateWeatherUI(data);
+  } catch (error) {
+    console.error(error);
+    alert("Could not fetch weather data. Please try again.");
+  }
+}
 
-   }
+function updateWeatherUI(data) {
+  const temperature = document.querySelector(".temperature");
+  const location = document.querySelector(".location");
+  const time = document.querySelector(".time");
+  const day = document.querySelector(".day");
+  const date = document.querySelector(".date");
+  const conditionEl = document.querySelector(".condition");
+  const iconImg = document.querySelector(".icon img");
+
+  temperature.textContent = `${data.current.temp_c}°C`;
+  location.textContent = data.location.name;
+  time.textContent = data.location.localtime;
+  day.textContent = new Date(data.location.localtime).toLocaleDateString("en-US", { weekday: "long" });
+  date.textContent = new Date(data.location.localtime).getDate();
+  conditionEl.textContent = data.current.condition.text;
+  iconImg.src = data.current.condition.icon;
+}
 
