@@ -1,0 +1,184 @@
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  font-size: 1.15rem;
+  color: var(--text);
+  text-decoration: none;
+}
+.logo:hover {
+  text-decoration: none;
+}
+
+.badge {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-dim);
+  color: var(--accent);
+  border: 1px solid transparent;
+}
+
+.links {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.links a {
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  transition: color 120ms ease, background 120ms ease;
+}
+
+.links a:hover {
+  color: var(--text);
+  background: var(--surface-2);
+  text-decoration: none;
+}
+
+.links a[data-active="true"] {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.wallet {
+  margin-left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+@media (max-width: 640px) {
+  .nav {
+    padding: 10px 16px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .links {
+    gap: 0;
+  }
+  .links a {
+    padding: 6px 8px;
+    font-size: 0.82rem;
+  }
+}
+
+/* Faucet — a button that must look identical to the link tabs beside it. */
+.navBtn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--text-dim);
+  font-size: 0.88rem;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  transition: color 120ms ease, background 120ms ease;
+}
+
+.navBtn:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+/* USDC balance chip inside the Vault button. */
+.balanceChip {
+  margin-left: 7px;
+  padding: 1px 8px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-pill);
+  background: var(--glass-tint);
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+/* Theme-paired brand gems: :root defaults to dark (light gem shows);
+   data-theme="light" flips to the dark gem for contrast. */
+.gemOnLight,
+.gemOnDark {
+  border-radius: 4px;
+}
+
+.gemOnLight {
+  display: none;
+}
+
+:global([data-theme="light"]) .gemOnLight {
+  display: inline-block;
+}
+
+:global([data-theme="light"]) .gemOnDark {
+  display: none;
+}
+
+@media (prefers-color-scheme: light) {
+  :global(:root:not([data-theme])) .gemOnLight {
+    display: inline-block;
+  }
+  :global(:root:not([data-theme])) .gemOnDark {
+    display: none;
+  }
+}
+
+/* empty-wallet call-to-action (replaces "Vault $0") — bold white pill */
+.depositNav {
+  padding: 9px 22px;
+  border: none;
+  border-radius: 12px;
+  background: #fff;
+  color: #10131a;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px -6px rgba(0, 0, 0, 0.5);
+  transition: filter 140ms ease, transform 140ms ease;
+}
+
+.depositNav:hover {
+  filter: brightness(0.93);
+  transform: translateY(-1px);
+}
+
+:global([data-theme="light"]) .depositNav {
+  background: #10131a;
+  color: #fff;
+}
+
+@media (prefers-color-scheme: light) {
+  :global(:root:not([data-theme])) .depositNav {
+    background: #10131a;
+    color: #fff;
+  }
+}

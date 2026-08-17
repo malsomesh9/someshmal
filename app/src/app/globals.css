@@ -1,0 +1,613 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   ONYX design tokens — dark-first, 8px grid, one accent.
+   Existing var/class names are preserved (modules depend on them);
+   new tokens and primitives are additive.
+
+   Theme switching: :root carries the dark palette as the default (matches
+   the app's original dark-first design). [data-theme="light"] overrides it
+   with re-tuned values, not a blind invert — the accent, shadow opacities,
+   and glass tint all get re-picked for contrast on a light surface rather
+   than just flipped. A blocking inline script in layout.tsx sets
+   data-theme on <html> before first paint (localStorage choice, else
+   system preference), so this attribute is always present by render time
+   and Tailwind's `dark:` selector-strategy variant (see tailwind.config.ts)
+   stays in sync with it automatically.
+   ============================================================ */
+
+:root {
+  /* surfaces — neutral near-black, deliberately no blue cast */
+  --bg: #09090b;
+  --surface: #101012;
+  --surface-2: #17171a;
+  --surface-3: #1e1e22;
+  --border: #232327;
+  --border-strong: #38383f;
+
+  /* text — neutral grays */
+  --text: #f0f0f2;
+  --text-dim: #9b9ba6;
+  --text-faint: #65656f;
+
+  /* accent + semantic */
+  --accent: #6ee7ff;
+  --accent-strong: #22d3ee;
+  --accent-dim: rgba(110, 231, 255, 0.1);
+  --green: #4ade80;
+  --green-dim: rgba(74, 222, 128, 0.12);
+  --red: #f87171;
+  --red-dim: rgba(248, 113, 113, 0.12);
+  --amber: #fbbf24;
+  --amber-dim: rgba(251, 191, 36, 0.12);
+
+  /* shape + rhythm (8px grid) */
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-pill: 999px;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    monospace;
+
+  /* liquid-glass surface tokens (dark values — see [data-theme="light"] for
+     the light-mode re-tune). Used only on brand-moment panels (hero, primary
+     CTA, nav) — never on data/market cards, see landing.module.css header. */
+  --glass-tint: rgba(255, 255, 255, 0.045);
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --glass-highlight: rgba(255, 255, 255, 0.35);
+  --glass-shadow: rgba(0, 0, 0, 0.45);
+
+  /* ambient body-wash strength (body background gradients) — light mode
+     needs much stronger washes: its deep accent at low alpha vanishes on
+     white, while dark mode's bright accent reads at ~12%. */
+  /* dark mode: washes near-zero — a black app, not a blue-green glow */
+  --wash-1: 3%;
+  --wash-2: 2%;
+  --wash-3: 2%;
+}
+
+/* Light mode — re-tuned, not inverted: accent goes deeper/more saturated for
+   contrast on white, dim/-tone backgrounds get lighter tints, shadows drop
+   to near-nothing (4-8% opacity), glass highlights flip from white to dark
+   specular so the frosted edge still reads against a light backdrop. */
+:root[data-theme="light"] {
+  --bg: #f6f7fb;
+  --surface: #ffffff;
+  --surface-2: #f0f1f6;
+  --surface-3: #e7e9f0;
+  --border: #e2e4ec;
+  --border-strong: #c7cbdb;
+
+  --text: #14161f;
+  --text-dim: #565b70;
+  --text-faint: #71768a;
+
+  --accent: #0891b2;
+  --accent-strong: #0e7490;
+  --accent-dim: rgba(8, 145, 178, 0.08);
+  --green: #16a34a;
+  --green-dim: rgba(22, 163, 74, 0.1);
+  --red: #dc2626;
+  --red-dim: rgba(220, 38, 38, 0.1);
+  --amber: #b45309;
+  --amber-dim: rgba(180, 83, 9, 0.1);
+
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04),
+    0 8px 24px -12px rgba(15, 23, 42, 0.1);
+
+  --glass-tint: rgba(255, 255, 255, 0.34);
+  --glass-border: rgba(15, 23, 42, 0.12);
+  --glass-highlight: rgba(255, 255, 255, 0.9);
+  --glass-shadow: rgba(15, 23, 42, 0.18);
+  --wash-1: 26%;
+  --wash-2: 18%;
+  --wash-3: 13%;
+}
+
+/* System-preference fallback for a first-time visitor who hasn't toggled
+   yet. The blocking script in layout.tsx normally sets data-theme before
+   this could ever be visible, but this keeps things correct with JS
+   disabled too (progressive enhancement, not load-bearing). */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --bg: #f6f7fb;
+    --surface: #ffffff;
+    --surface-2: #f0f1f6;
+    --surface-3: #e7e9f0;
+    --border: #e2e4ec;
+    --border-strong: #c7cbdb;
+    --text: #14161f;
+    --text-dim: #565b70;
+    --text-faint: #71768a;
+    --accent: #0891b2;
+    --accent-strong: #0e7490;
+    --accent-dim: rgba(8, 145, 178, 0.08);
+    --green: #16a34a;
+    --green-dim: rgba(22, 163, 74, 0.1);
+    --red: #dc2626;
+    --red-dim: rgba(220, 38, 38, 0.1);
+    --amber: #b45309;
+    --amber-dim: rgba(180, 83, 9, 0.1);
+    --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04),
+      0 8px 24px -12px rgba(15, 23, 42, 0.1);
+    --glass-tint: rgba(255, 255, 255, 0.34);
+    --glass-border: rgba(15, 23, 42, 0.12);
+    --glass-highlight: rgba(255, 255, 255, 0.9);
+    --glass-shadow: rgba(15, 23, 42, 0.18);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* color changes (theme toggle) fade instead of flashing; layout-affecting
+   properties are excluded on purpose */
+html {
+  transition: background-color 200ms ease, color 200ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    transition: none;
+  }
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  /* full-bleed sections use 100vw (which includes the scrollbar gutter) and
+     the footer watermark intentionally overflows — clip, never h-scroll */
+  overflow-x: clip;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  /* Soft ambient washes behind everything: liquid-glass panels
+     (backdrop-filter) are invisible over a flat background — this is what
+     the blur/tint actually act on. Deliberately faint (≤12% accent, no
+     hard-edged blob), fixed so glass panels slide over it on scroll. */
+  background:
+    radial-gradient(640px 420px at 12% 8%, color-mix(in srgb, var(--accent) var(--wash-1), transparent), transparent 70%),
+    radial-gradient(760px 520px at 88% 26%, color-mix(in srgb, var(--accent-strong) var(--wash-2), transparent), transparent 70%),
+    radial-gradient(700px 480px at 40% 90%, color-mix(in srgb, var(--accent) var(--wash-3), transparent), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 24px 96px;
+}
+
+/* type scale */
+h1 {
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+}
+h2 {
+  font-size: 1.05rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  margin: 32px 0 12px;
+}
+h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 16px 0 8px;
+}
+
+.muted {
+  color: var(--text-dim);
+}
+.faint {
+  color: var(--text-faint);
+}
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  word-break: break-all;
+}
+
+/* ---------- primitives ---------- */
+
+.card {
+  background: var(--glass-tint);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  box-shadow: inset 0 1px 0 var(--glass-highlight), var(--shadow-card);
+  backdrop-filter: blur(18px) saturate(1.5);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--accent);
+  color: #06121a;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: filter 120ms ease, transform 60ms ease;
+}
+.button:hover:not(:disabled) {
+  filter: brightness(1.08);
+  text-decoration: none;
+}
+.button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.button[data-variant="ghost"] {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.button[data-variant="ghost"]:hover:not(:disabled) {
+  background: var(--surface-2);
+  filter: none;
+}
+.button[data-variant="danger"] {
+  background: var(--red);
+  color: #1a0606;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 0.72rem;
+  font-weight: 550;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  background: transparent;
+  white-space: nowrap;
+}
+.pill[data-tone="green"] {
+  color: var(--green);
+  border-color: transparent;
+  background: var(--green-dim);
+}
+.pill[data-tone="red"] {
+  color: var(--red);
+  border-color: transparent;
+  background: var(--red-dim);
+}
+.pill[data-tone="amber"] {
+  color: var(--amber);
+  border-color: transparent;
+  background: var(--amber-dim);
+}
+.pill[data-tone="accent"] {
+  color: var(--accent);
+  border-color: transparent;
+  background: var(--accent-dim);
+}
+
+/* form controls */
+input,
+select,
+textarea {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  font-size: 0.9rem;
+  font-family: var(--font-sans);
+  outline: none;
+  transition: border-color 120ms ease;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--accent-strong);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+input::placeholder {
+  color: var(--text-faint);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* tables */
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+th {
+  text-align: left;
+  font-weight: 550;
+  color: var(--text-faint);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 8px 8px 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+td {
+  padding: 10px 8px 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+tr:last-child td {
+  border-bottom: none;
+}
+
+/* skeleton shimmer — reserve space, never shift layout */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.045),
+    transparent
+  );
+  animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* card grid helper (lobby & landing) */
+.grid-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+/* staggered entry for cards in grids/rows */
+.grid-cards > *, .rows > * {
+  animation: cardIn 400ms cubic-bezier(0.2, 0.7, 0.25, 1) backwards;
+}
+.grid-cards > *:nth-child(1), .rows > *:nth-child(1) { animation-delay: 0ms; }
+.grid-cards > *:nth-child(2), .rows > *:nth-child(2) { animation-delay: 40ms; }
+.grid-cards > *:nth-child(3), .rows > *:nth-child(3) { animation-delay: 80ms; }
+.grid-cards > *:nth-child(4), .rows > *:nth-child(4) { animation-delay: 120ms; }
+.grid-cards > *:nth-child(5), .rows > *:nth-child(5) { animation-delay: 160ms; }
+.grid-cards > *:nth-child(6), .rows > *:nth-child(6) { animation-delay: 200ms; }
+.grid-cards > *:nth-child(n+7), .rows > *:nth-child(n+7) { animation-delay: 240ms; }
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .grid-cards > *, .rows > * {
+    animation: none;
+  }
+}
+
+/* value transitions — updated numbers fade, never flash */
+.live-value {
+  transition: opacity 200ms ease;
+}
+
+@media (max-width: 640px) {
+  main {
+    padding: 20px 16px 64px;
+  }
+  h1 {
+    font-size: 1.4rem;
+  }
+}
+
+/* subtle scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---------- wallet-adapter theming ---------- */
+
+.wallet-adapter-button {
+  height: 38px !important;
+  font-size: 0.85rem !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+/* Defensive: the wallet-adapter-react-ui dropdown (account menu) and modal
+   (wallet picker) are meant to stay hidden until opened, and the library's
+   own stylesheet already does this -- but they're mounted in the DOM at all
+   times (grid/list layout, not display:none), so any CSS specificity/load-
+   order issue can make their list items flash visible as unstyled bullet
+   rows near the wallet button. Re-assert the hidden defaults here, with
+   higher specificity than the library's own rules, so this can't happen
+   regardless of import order. Only affects visibility/list styling, never
+   signing/approval behavior. */
+.wallet-adapter-dropdown-list,
+.wallet-adapter-modal-list {
+  list-style: none !important;
+  margin: 0;
+}
+.wallet-adapter-dropdown-list:not(.wallet-adapter-dropdown-list-active) {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+.wallet-adapter-modal:not(.wallet-adapter-modal-fade-in) {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Scroll-reveal (components/Reveal.tsx adds .visible on intersection). */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 600ms cubic-bezier(0.2, 0.7, 0.25, 1), transform 600ms cubic-bezier(0.2, 0.7, 0.25, 1);
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* Glass action button — the panel's primary CTA. Replaces the misaligned
+   LiquidButton wrapper (its decorative layers rendered offset from wide
+   buttons); same glass language as the landing CTA, app-scaled. */
+.glass-action {
+  position: relative;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--glass-border);
+  background:
+    linear-gradient(180deg, var(--glass-highlight), transparent 45%),
+    color-mix(in srgb, var(--accent) 20%, var(--glass-tint));
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 8px 22px -10px color-mix(in srgb, var(--accent) 50%, var(--glass-shadow));
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms ease, filter 200ms ease;
+}
+
+.glass-action:hover:not(:disabled) {
+  transform: translateY(-2px);
+  filter: brightness(1.04);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 14px 30px -12px color-mix(in srgb, var(--accent) 60%, var(--glass-shadow));
+}
+
+.glass-action:active:not(:disabled) {
+  transform: translateY(0) scale(0.995);
+}
+
+.glass-action:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-action {
+    transition: none;
+  }
+  .glass-action:hover:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* Icon-only back button — bigger tap target, no text (used on market
+   detail, receipt, 404). aria-label carries the destination. */
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-tint);
+  backdrop-filter: blur(10px) saturate(1.4);
+  -webkit-backdrop-filter: blur(10px) saturate(1.4);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), 0 4px 14px -8px var(--glass-shadow);
+  color: var(--text);
+  text-decoration: none;
+  transition: transform 140ms ease, border-color 140ms ease;
+}
+
+.back-btn:hover {
+  text-decoration: none;
+  transform: translateX(-2px);
+  border-color: var(--border-strong);
+}
+
+.back-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* native number-input spinner arrows look broken on the dark theme — hide
+   them everywhere; the inputs stay typeable and arrow-key steppable */
+input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

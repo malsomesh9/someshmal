@@ -1,0 +1,230 @@
+/* Portfolio page — token-system styles only (vars from globals.css).
+   Rows are flex cards that wrap, so nothing needs horizontal scroll at 390px. */
+
+.intro {
+  margin: 0 0 4px;
+}
+
+/* KPI strip — same mono-stat language as the landing hero's .statStrip,
+   kept on a flat .card (portfolio never uses the glass tokens). */
+.summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 20px;
+  padding: 20px 24px;
+}
+
+.summaryStat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.summaryStat + .summaryStat {
+  border-left: 1px solid var(--border);
+  padding-left: 20px;
+}
+
+.summaryValue {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.summaryValue[data-tone="green"] {
+  color: var(--green);
+}
+
+.summaryLabel {
+  font-size: 0.7rem;
+  font-weight: 550;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-faint);
+}
+
+.section {
+  margin-top: 28px;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+  flex-wrap: wrap;
+}
+
+.rowMain {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.question {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.sub {
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  margin-top: 2px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: baseline;
+}
+
+.sub > span + span::before {
+  content: "·";
+  color: var(--text-faint);
+  margin-right: 6px;
+}
+
+.rowMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.claimBtn {
+  padding: 6px 14px;
+  font-size: 0.82rem;
+}
+
+/* Sealed-order rows reuse .row/.rowMain; commitment hash gets mono treatment. */
+.hash {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-faint);
+  word-break: normal;
+}
+
+.amount {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Connect / empty states */
+.gate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+  padding: 56px 24px;
+  margin-top: 24px;
+}
+
+.gateTitle {
+  font-weight: 650;
+  font-size: 1.05rem;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--text-dim);
+  font-size: 0.95rem;
+  padding: 64px 20px;
+  background: var(--glass-tint);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  margin-top: 12px;
+  text-align: center;
+}
+.empty::before {
+  content: "📁";
+  font-size: 2.8rem;
+  filter: grayscale(1) opacity(0.4);
+}
+.empty a {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 8px;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: #06121a;
+  font-weight: 650;
+  text-decoration: none;
+  transition: transform 60ms ease, filter 120ms ease;
+}
+.empty a:hover {
+  text-decoration: none;
+  filter: brightness(1.08);
+}
+.empty a:active {
+  transform: scale(0.97);
+}
+
+/* Skeletons — same height as a one-line .card row so nothing shifts. */
+.skelRow {
+  height: 76px;
+  border-radius: var(--radius);
+}
+
+.txNote {
+  font-size: 0.8rem;
+  margin-top: 10px;
+}
+
+.error {
+  color: var(--red);
+  font-size: 0.85rem;
+  margin-top: 10px;
+}
+
+.footNote {
+  margin-top: 32px;
+  font-size: 0.78rem;
+  color: var(--text-faint);
+}
+
+@media (max-width: 640px) {
+  .row {
+    align-items: flex-start;
+  }
+  .rowMeta {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .summary {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .summaryStat + .summaryStat {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+  }
+}
+
+/* YES/NO holdings chips in position rows */
+.holdYes,
+.holdNo {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.holdYes {
+  color: var(--green);
+}
+
+.holdNo {
+  color: var(--red);
+}

@@ -1,0 +1,676 @@
+// Live devnet reads for the ONYX settlement program. No mocks past this file
+// for the L0 path (lobby / market detail / receipt) — every value here comes
+// from a real getAccountInfo / getProgramAccounts / getTransaction call
+// against devnet.
+//
+// Market account layout mirrors programs/onyx/src/state/market.rs exactly
+// (128 bytes, byte-for-byte offsets documented there). Decoded here in plain
+// TS with DataView since there's no Anchor IDL for this Pinocchio program.
+
+import { Buffer } from "buffer";
+import { Connection, PublicKey, clusterApiUrl } from "@solana/web3.js";
+import { AMM_POOL } from "./layouts";
+import { resolveConnection } from "./erRouting";
+
+// MagicBlock Delegation Program — owns delegated accounts while on the ER.
+// Declared here (not imported from instructions.ts) to avoid a cycle:
+// instructions.ts imports ONYX_PROGRAM_ID from this file.
+const DELEGATION_PROGRAM_ID_PK = new PublicKey("DELeGGvXpWV2fqJUhqcF5ZSYMS4JTLjteaAMARRSaeSh");
+
+export const ONYX_PROGRAM_ID = new PublicKey(
+  process.env.NEXT_PUBLIC_ONYX_PROGRAM_ID ?? "4LpMzq6wXYFMzxgbyMyN2ja4EQhPsYGHSCAvjwzA18MB",
+);
+export const TXORACLE_PROGRAM_ID = new PublicKey(
+  process.env.NEXT_PUBLIC_TXORACLE_PROGRAM_ID ?? "6pW64gN1s2uqjHkn1unFeEjAwJkPGHoppGvS715wyP2J",
+);
+
+const RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC_URL ?? clusterApiUrl("devnet");
+
+export function getConnection(): Connection {
+  return new Connection(RPC_URL, "confirmed");
+}
+
+// ---- constants mirrored from programs/onyx/src/constants.rs ----
+export const DISC_MARKET = 2;
+export const DISC_SEALED_ORDER = 4;
+
+export const STATUS_DRAFT = 0;
+export const STATUS_OPEN = 1;
+export const STATUS_LIVE = 2;
+export const STATUS_SETTLING = 3;
+export const STATUS_SETTLED = 4;
+export const STATUS_CLAIMED = 5;
+export const STATUS_EXPIRED = 6;
+export const STATUS_REFUNDED = 7;
+
+export const STATUS_NAMES: Record<number, string> = {
+  [STATUS_DRAFT]: "Draft",
+  [STATUS_OPEN]: "Open",
+  [STATUS_LIVE]: "Live",
+  [STATUS_SETTLING]: "Settling",
+  [STATUS_SETTLED]: "Settled",
+  [STATUS_CLAIMED]: "Claimed",
+  [STATUS_EXPIRED]: "Expired",
+  [STATUS_REFUNDED]: "Refunded",
+};
+export const OUTCOME_NAMES: Record<number, string> = {
+  0: "Unknown",
+  1: "Side A",
+  2: "Side B",
+};
+export const OUTCOME_SIDE_A = 1;
+export const OUTCOME_SIDE_B = 2;
+/** Mirror of the program's SETTLE_GRACE: past deadline + this, an unsettled
+ *  AMM market's expiry-refund path opens (redeem_amm / withdraw_lp_amm). */
+export const SETTLE_GRACE_SEC = 7200;
+export const OP_NAMES: Record<number, string> = { 0: "Add", 1: "Subtract", 255: "—" };
+export const CMP_SYMBOLS: Record<number, string> = { 0: ">", 1: "<", 2: "=" };
+
+/** Market.phase — sealed-order sub-state (Level 1, O7). 0 = not a sealed market. */
+export const PHASE_NAMES: Record<number, string> = {
+  0: "—",
+  1: "Commit",
+  2: "Reveal",
+  3: "Matched",
+};
+export const PHASE_NONE = 0;
+export const PHASE_COMMIT = 1;
+export const PHASE_REVEAL = 2;
+export const PHASE_MATCHED = 3;
+
+export const ORDER_STATUS_NAMES: Record<number, string> = {
+  0: "Locked",
+  1: "Revealed",
+  2: "Matched",
+  3: "Refunded",
+};
+
+const ODDS_SCALE = 1_000_000n;
+
+/** Decoded on-chain Market account (see state/market.rs for the byte layout). */
+export interface OnChainMarket {
+  pda: string;
+  fixtureId: bigint;
+  statAKey: number;
+  statBKey: number;
+  op: number;
+  predicate: number;
+  status: number;
+  outcome: number;
+  threshold: bigint;
+  deadline: bigint;
+  createdSlot: bigint;
+  totalSideA: bigint;
+  totalSideB: bigint;
+  paramsHash: string; // hex
+  // Sealed-order extension (offsets 102-126, carved out of what was pure
+  // _reserved padding — see state/market.rs doc comment). phase===PHASE_NONE
+  // for any market opened via plain open_market.
+  commitEndTs: bigint;
+  revealEndTs: bigint;
+  phase: number;
+  clearingPrice: bigint;
+  /** ER-fast TradingAccount reveals only (byte 127, repurposed from
+   * _reserved — see state/market.rs). The base sealed-order flow
+   * (SealedOrder) never touches this; always 0 for a classic-only market. */
+  revealedCount: number;
+}
+
+export function decodeMarket(pda: PublicKey, data: Buffer): OnChainMarket | null {
+  if (data.length < 128 || data[0] !== DISC_MARKET) return null;
+  const dv = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  return {
+    pda: pda.toBase58(),
+    fixtureId: dv.getBigUint64(8, true),
+    statAKey: dv.getUint32(16, true),
+    statBKey: dv.getUint32(20, true),
+    op: data[24]!,
+    predicate: data[25]!,
+    status: data[26]!,
+    outcome: data[27]!,
+    threshold: dv.getBigInt64(28, true),
+    deadline: dv.getBigInt64(36, true),
+    createdSlot: dv.getBigUint64(44, true),
+    totalSideA: dv.getBigUint64(52, true),
+    totalSideB: dv.getBigUint64(60, true),
+    paramsHash: Buffer.from(data.subarray(68, 100)).toString("hex"),
+    commitEndTs: dv.getBigInt64(102, true),
+    revealEndTs: dv.getBigInt64(110, true),
+    phase: data[118]!,
+    clearingPrice: dv.getBigUint64(119, true),
+    revealedCount: data[127]!,
+  };
+}
+
+/** Decoded on-chain SealedOrder account (see state/sealed_order.rs). */
+export interface OnChainSealedOrder {
+  pda: string;
+  owner: string;
+  market: string;
+  commitment: string; // hex
+  collateralLocked: bigint;
+  nonce: bigint;
+  revealed: boolean;
+  side: number;
+  status: number;
+  size: bigint;
+  limitPrice: bigint;
+  matchedSize: bigint;
+}
+
+export function decodeSealedOrder(pda: PublicKey, data: Buffer): OnChainSealedOrder | null {
+  if (data.length < 160 || data[0] !== DISC_SEALED_ORDER) return null;
+  const dv = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  return {
+    pda: pda.toBase58(),
+    owner: new PublicKey(data.subarray(8, 40)).toBase58(),
+    market: new PublicKey(data.subarray(40, 72)).toBase58(),
+    commitment: Buffer.from(data.subarray(72, 104)).toString("hex"),
+    collateralLocked: dv.getBigUint64(104, true),
+    nonce: dv.getBigUint64(112, true),
+    revealed: data[120] !== 0,
+    side: data[121]!,
+    status: data[122]!,
+    size: dv.getBigUint64(128, true),
+    limitPrice: dv.getBigUint64(136, true),
+    matchedSize: dv.getBigUint64(144, true),
+  };
+}
+
+/** All revealed/unrevealed SealedOrder accounts for a given market. */
+export async function listSealedOrders(marketPda: string): Promise<OnChainSealedOrder[]> {
+  const connection = getConnection();
+  const market = new PublicKey(marketPda);
+  const accounts = await connection.getProgramAccounts(ONYX_PROGRAM_ID, {
+    filters: [
+      { memcmp: { offset: 0, bytes: Buffer.from([DISC_SEALED_ORDER]).toString("base64"), encoding: "base64" } },
+      { memcmp: { offset: 40, bytes: market.toBase58(), encoding: "base58" } },
+    ],
+  });
+  return accounts
+    .map(({ pubkey, account }) => decodeSealedOrder(pubkey, account.data))
+    .filter((o): o is OnChainSealedOrder => o !== null);
+}
+
+/** Config PDA (singleton) — see state/config.rs. usdc_mint lives at bytes 40..72. */
+export async function getConfigUsdcMint(): Promise<PublicKey | null> {
+  const connection = getConnection();
+  const [configPda] = PublicKey.findProgramAddressSync([Buffer.from("config")], ONYX_PROGRAM_ID);
+  const info = await connection.getAccountInfo(configPda);
+  if (!info) return null;
+  return new PublicKey(info.data.subarray(40, 72));
+}
+
+/** ODDS_SCALE-fixed-point price (0..=1_000_000) as a human percentage string. */
+export function priceToPercent(price: bigint): string {
+  return ((Number(price) / Number(ODDS_SCALE)) * 100).toFixed(1) + "%";
+}
+
+/** All ONYX Market accounts currently on devnet, newest (by created_slot) first. */
+export async function listMarkets(): Promise<OnChainMarket[]> {
+  const connection = getConnection();
+  // Two scans: ONYX-owned markets, plus markets currently DELEGATED to the
+  // MagicBlock ER (owned by the Delegation Program on base — an owner-
+  // filtered scan of ONYX alone would silently drop every delegated market,
+  // which is exactly the state the v2 seeder leaves them in). The
+  // delegation-program scan can match foreign accounts (any program's
+  // delegated data with byte 0 == 2), so each hit is verified by
+  // re-deriving the market PDA from its own stored fixtureId + paramsHash —
+  // an exact, unforgeable check.
+  const disc = { memcmp: { offset: 0, bytes: Buffer.from([DISC_MARKET]).toString("base64"), encoding: "base64" } } as const;
+  const [own, delegated] = await Promise.all([
+    connection.getProgramAccounts(ONYX_PROGRAM_ID, { filters: [disc] }),
+    connection.getProgramAccounts(DELEGATION_PROGRAM_ID_PK, { filters: [disc] }).catch(() => []),
+  ]);
+  const markets = own
+    .map(({ pubkey, account }) => decodeMarket(pubkey, account.data))
+    .filter((m): m is OnChainMarket => m !== null);
+  for (const { pubkey, account } of delegated) {
+    const m = decodeMarket(pubkey, account.data);
+    if (!m) continue;
+    const fixtureLe = Buffer.alloc(8);
+    fixtureLe.writeBigUInt64LE(m.fixtureId);
+    const [expected] = PublicKey.findProgramAddressSync(
+      [Buffer.from("market"), fixtureLe, Buffer.from(m.paramsHash, "hex")],
+      ONYX_PROGRAM_ID,
+    );
+    if (expected.equals(pubkey)) markets.push(m);
+  }
+  markets.sort((a, b) => (b.createdSlot > a.createdSlot ? 1 : -1));
+  return markets;
+}
+
+/** `connection` defaults to base — pass an ER connection to read a delegated market's live state (see erRouting.ts / useRoutedMarket). */
+export async function getMarket(pda: string, connection: Connection = getConnection()): Promise<OnChainMarket | null> {
+  const pubkey = new PublicKey(pda);
+  const info = await connection.getAccountInfo(pubkey);
+  if (!info) return null;
+  return decodeMarket(pubkey, info.data);
+}
+
+/**
+ * Find the settle_market transaction for a market by scanning its recent
+ * signatures for the one whose logs mention the txoracle CPI. Good enough for
+ * a single-market demo slice; a real indexer would track this directly.
+ */
+export async function findSettleTx(pda: string): Promise<{
+  signature: string;
+  logs: string[];
+  slot: number;
+} | null> {
+  const connection = getConnection();
+  const pubkey = new PublicKey(pda);
+  const sigs = await connection.getSignaturesForAddress(pubkey, { limit: 20 });
+  for (const s of sigs) {
+    const tx = await connection.getTransaction(s.signature, {
+      maxSupportedTransactionVersion: 0,
+    });
+    const logs = tx?.meta?.logMessages ?? [];
+    if (logs.some((l) => l.includes("ValidateStat") || l.includes("Evaluate predicate"))) {
+      return { signature: s.signature, logs, slot: s.slot };
+    }
+  }
+  return null;
+}
+
+export function explorerTxUrl(signature: string): string {
+  return `https://explorer.solana.com/tx/${signature}?cluster=devnet`;
+}
+/**
+ * ER-aware explorer link: a transaction executed on the Ephemeral Rollup
+ * lives on the ER's ledger, NOT base devnet — a ?cluster=devnet link shows
+ * "Not Found" (observed live). Solana Explorer supports custom RPC URLs, so
+ * ER txs link with the ER endpoint plugged in.
+ */
+export function explorerTxUrlFor(signature: string, rpcEndpoint: string | null): string {
+  if (!rpcEndpoint || rpcEndpoint.includes("devnet.solana.com")) return explorerTxUrl(signature);
+  return `https://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${encodeURIComponent(rpcEndpoint)}`;
+}
+export function explorerAddressUrl(address: string): string {
+  return `https://explorer.solana.com/address/${address}?cluster=devnet`;
+}
+
+// =====================================================================
+// TradingAccount (ER-fast trading — additive, see docs/ER_TRADING_DESIGN.md
+// and programs/onyx/src/state/trading_account.rs for the byte layout this
+// mirrors exactly, 176 bytes). Every read here takes an explicit
+// `connection` param (no default) — callers MUST resolve base-vs-ER via
+// erRouting.ts first, since which endpoint holds the authoritative copy
+// depends on this specific account's current delegation state.
+// =====================================================================
+
+export const DISC_TRADING_ACCOUNT = 5;
+export const TRADING_ACCOUNT_LEN = 176;
+
+export const TRADING_STATUS_NONE = 0;
+export const TRADING_STATUS_LOCKED = 1;
+export const TRADING_STATUS_REVEALED = 2;
+export const TRADING_STATUS_MATCHED = 3;
+export const TRADING_STATUS_NAMES: Record<number, string> = {
+  0: "None",
+  1: "Locked",
+  2: "Revealed",
+  3: "Matched",
+};
+
+export interface OnChainTradingAccount {
+  pda: string;
+  owner: string;
+  market: string;
+  deposited: bigint;
+  available: bigint;
+  locked: bigint;
+  commitment: string; // hex, all-zero = no open order
+  side: number;
+  status: number;
+  size: bigint;
+  limitPrice: bigint;
+  matchedSize: bigint;
+  withdrawn: bigint;
+  claimedWinnings: boolean;
+}
+
+export function decodeTradingAccount(pda: PublicKey, data: Buffer): OnChainTradingAccount | null {
+  if (data.length < TRADING_ACCOUNT_LEN || data[0] !== DISC_TRADING_ACCOUNT) return null;
+  const dv = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  return {
+    pda: pda.toBase58(),
+    owner: new PublicKey(data.subarray(8, 40)).toBase58(),
+    market: new PublicKey(data.subarray(40, 72)).toBase58(),
+    deposited: dv.getBigUint64(72, true),
+    available: dv.getBigUint64(80, true),
+    locked: dv.getBigUint64(88, true),
+    commitment: Buffer.from(data.subarray(96, 128)).toString("hex"),
+    side: data[128]!,
+    status: data[129]!,
+    size: dv.getBigUint64(136, true),
+    limitPrice: dv.getBigUint64(144, true),
+    matchedSize: dv.getBigUint64(152, true),
+    withdrawn: dv.getBigUint64(160, true),
+    claimedWinnings: data[169] !== 0,
+  };
+}
+
+export function tradingAccountPda(market: PublicKey, owner: PublicKey): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from("trading"), market.toBuffer(), owner.toBuffer()],
+    ONYX_PROGRAM_ID,
+  )[0];
+}
+
+/** One wallet's TradingAccount for a market, read from the given connection (base or ER — caller resolves). Null if it doesn't exist there. */
+export async function getTradingAccount(
+  connection: Connection,
+  market: PublicKey,
+  owner: PublicKey,
+): Promise<OnChainTradingAccount | null> {
+  const pda = tradingAccountPda(market, owner);
+  const info = await connection.getAccountInfo(pda);
+  if (!info) return null;
+  return decodeTradingAccount(pda, info.data);
+}
+
+/** Every TradingAccount for a market, read from the given connection. Used to build the batch-match account list and to undelegate everything at once. */
+export async function listTradingAccountsForMarket(
+  connection: Connection,
+  market: PublicKey,
+): Promise<OnChainTradingAccount[]> {
+  const accounts = await connection.getProgramAccounts(ONYX_PROGRAM_ID, {
+    filters: [
+      { memcmp: { offset: 0, bytes: Buffer.from([DISC_TRADING_ACCOUNT]).toString("base64"), encoding: "base64" } },
+      { memcmp: { offset: 40, bytes: market.toBase58(), encoding: "base58" } },
+    ],
+  });
+  return accounts
+    .map(({ pubkey, account }) => decodeTradingAccount(pubkey, account.data))
+    .filter((t): t is OnChainTradingAccount => t !== null);
+}
+
+// =====================================================================
+// AMM outcome-token trading (docs/AMM_TRADING_DESIGN.md; byte layouts
+// mirror programs/onyx/src/state/amm_pool.rs / amm_position.rs exactly).
+// Like TradingAccount reads, every single-account read takes an explicit
+// `connection` — a pool/position lives on the ER while delegated, so the
+// caller resolves base-vs-ER via erRouting first. The list scans are
+// base-only by design: getProgramAccounts on base sees every pool/position
+// ever created (a delegated account still EXISTS on base, owned by the
+// Delegation Program — its base data is stale while delegated but its
+// existence and PDA are what the lobby badge / portfolio discovery need).
+// =====================================================================
+
+export const DISC_AMM_POOL = 6;
+export const DISC_AMM_POSITION = 7;
+export const AMM_POOL_LEN = 176;
+export const AMM_POSITION_LEN = 144;
+
+export interface OnChainAmmPool {
+  pda: string;
+  market: string;
+  lpOwner: string;
+  reserveA: bigint;
+  reserveB: bigint;
+  setsOutstanding: bigint;
+  feesAccrued: bigint;
+  seedAmount: bigint;
+  feeBps: number;
+  lpWithdrawn: boolean;
+}
+
+export function decodeAmmPool(pda: PublicKey, data: Buffer): OnChainAmmPool | null {
+  if (data.length < AMM_POOL_LEN || data[0] !== DISC_AMM_POOL) return null;
+  const dv = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  return {
+    pda: pda.toBase58(),
+    market: new PublicKey(data.subarray(8, 40)).toBase58(),
+    lpOwner: new PublicKey(data.subarray(40, 72)).toBase58(),
+    reserveA: dv.getBigUint64(72, true),
+    reserveB: dv.getBigUint64(80, true),
+    setsOutstanding: dv.getBigUint64(88, true),
+    feesAccrued: dv.getBigUint64(96, true),
+    seedAmount: dv.getBigUint64(104, true),
+    feeBps: dv.getUint16(112, true),
+    lpWithdrawn: data[114] !== 0,
+  };
+}
+
+export interface OnChainAmmPosition {
+  pda: string;
+  owner: string;
+  market: string;
+  usdcAvailable: bigint;
+  tokensA: bigint;
+  tokensB: bigint;
+  withdrawn: bigint;
+  redeemed: boolean;
+}
+
+export function decodeAmmPosition(pda: PublicKey, data: Buffer): OnChainAmmPosition | null {
+  if (data.length < AMM_POSITION_LEN || data[0] !== DISC_AMM_POSITION) return null;
+  const dv = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  return {
+    pda: pda.toBase58(),
+    owner: new PublicKey(data.subarray(8, 40)).toBase58(),
+    market: new PublicKey(data.subarray(40, 72)).toBase58(),
+    usdcAvailable: dv.getBigUint64(72, true),
+    tokensA: dv.getBigUint64(80, true),
+    tokensB: dv.getBigUint64(88, true),
+    withdrawn: dv.getBigUint64(96, true),
+    redeemed: data[104] !== 0,
+  };
+}
+
+export function ammPoolPda(market: PublicKey): PublicKey {
+  return PublicKey.findProgramAddressSync([Buffer.from("amm"), market.toBuffer()], ONYX_PROGRAM_ID)[0];
+}
+export function ammPositionPda(market: PublicKey, owner: PublicKey): PublicKey {
+  return PublicKey.findProgramAddressSync([Buffer.from("ammpos"), market.toBuffer(), owner.toBuffer()], ONYX_PROGRAM_ID)[0];
+}
+
+/** The AMM pool for a market from the given connection (base or ER — caller resolves). Null if the market has no pool there. */
+export async function getAmmPool(connection: Connection, market: PublicKey): Promise<OnChainAmmPool | null> {
+  const pda = ammPoolPda(market);
+  const info = await connection.getAccountInfo(pda);
+  if (!info) return null;
+  return decodeAmmPool(pda, info.data);
+}
+
+/** One wallet's AmmPosition for a market from the given connection. Null if it doesn't exist there. */
+export async function getAmmPosition(connection: Connection, market: PublicKey, owner: PublicKey): Promise<OnChainAmmPosition | null> {
+  const pda = ammPositionPda(market, owner);
+  const info = await connection.getAccountInfo(pda);
+  if (!info) return null;
+  return decodeAmmPosition(pda, info.data);
+}
+
+/**
+ * The set of market PDAs that have an AMM pool — base-scan (delegated pools
+ * still exist on base under the Delegation Program's ownership, but a
+ * getProgramAccounts scan is owner-filtered to ONYX, so a delegated pool
+ * WOULD drop out of this list. Discovery therefore ALSO derives from
+ * markets: for lobby badging this scan is best-effort, and the market page
+ * checks pool existence per-PDA via getMultipleAccounts-free direct read
+ * that is ownership-agnostic).
+ */
+export async function listAmmPoolMarkets(): Promise<Set<string>> {
+  const connection = getConnection();
+  const accounts = await connection.getProgramAccounts(ONYX_PROGRAM_ID, {
+    filters: [{ memcmp: { offset: 0, bytes: Buffer.from([DISC_AMM_POOL]).toString("base64"), encoding: "base64" } }],
+  });
+  const set = new Set<string>();
+  for (const { pubkey, account } of accounts) {
+    const pool = decodeAmmPool(pubkey, account.data);
+    if (pool) set.add(pool.market);
+  }
+  return set;
+}
+
+export interface AmmPoolSummary {
+  market: string;
+  pool: string;
+  reserveA: bigint;
+  reserveB: bigint;
+  feesAccrued: bigint;
+  seedAmount: bigint;
+  feeBps: number;
+  delegated: boolean;
+}
+
+/**
+ * Real cumulative traded volume from on-chain fees: the program takes
+ * `fee_bps` on every swap leg into `fees_accrued`, so
+ * volume = fees * 10_000 / fee_bps — derived, never stored, never fakeable.
+ */
+export function volumeFromFees(feesAccrued: bigint, feeBps: number): bigint {
+  if (feeBps <= 0) return 0n;
+  return (feesAccrued * 10_000n) / BigInt(feeBps);
+}
+
+function decodePoolSummary(market: string, pool: PublicKey, data: Buffer, delegated: boolean): AmmPoolSummary {
+  return {
+    market,
+    pool: pool.toBase58(),
+    reserveA: data.readBigUInt64LE(AMM_POOL.RESERVE_A),
+    reserveB: data.readBigUInt64LE(AMM_POOL.RESERVE_B),
+    feesAccrued: data.readBigUInt64LE(AMM_POOL.FEES_ACCRUED),
+    seedAmount: data.readBigUInt64LE(AMM_POOL.SEED_AMOUNT),
+    feeBps: data.readUInt16LE(AMM_POOL.FEE_BPS),
+    delegated,
+  };
+}
+
+/**
+ * Delegation-AGNOSTIC pool lookup for a known market list: derives each
+ * market's pool PDA and reads it directly (getMultipleAccountsInfo), so a
+ * pool currently delegated to the ER — owned by the Delegation Program on
+ * base — is still found, unlike the owner-filtered scan above. Delegated
+ * pools' base data is a snapshot frozen at delegation time, so their LIVE
+ * reserves/fees are re-read from the Ephemeral Rollup in a second batch —
+ * lobby prices track real ER trading, not the stale base copy.
+ */
+export async function getAmmPoolsForMarkets(marketPdas: string[]): Promise<Map<string, AmmPoolSummary>> {
+  const connection = getConnection();
+  const out = new Map<string, AmmPoolSummary>();
+  const delegatedPdas: { market: string; pool: PublicKey }[] = [];
+  for (let i = 0; i < marketPdas.length; i += 100) {
+    const chunk = marketPdas.slice(i, i + 100);
+    const pdas = chunk.map((m) => ammPoolPda(new PublicKey(m)));
+    const infos = await connection.getMultipleAccountsInfo(pdas);
+    for (const [j, info] of infos.entries()) {
+      if (!info || info.data.length < AMM_POOL.LEN || info.data[0] !== DISC_AMM_POOL) continue;
+      const delegated = !info.owner.equals(ONYX_PROGRAM_ID);
+      out.set(chunk[j]!, decodePoolSummary(chunk[j]!, pdas[j]!, info.data, delegated));
+      if (delegated) delegatedPdas.push({ market: chunk[j]!, pool: pdas[j]! });
+    }
+  }
+  if (delegatedPdas.length > 0) {
+    try {
+      // One router lookup resolves the ER endpoint (devnet runs one ER
+      // validator; a pool not on this endpoint just keeps its base snapshot).
+      const { connection: er, isDelegated } = await resolveConnection(delegatedPdas[0]!.pool, connection);
+      if (isDelegated) {
+        for (let i = 0; i < delegatedPdas.length; i += 100) {
+          const chunk = delegatedPdas.slice(i, i + 100);
+          const infos = await er.getMultipleAccountsInfo(chunk.map((d) => d.pool));
+          for (const [j, info] of infos.entries()) {
+            if (!info || info.data.length < AMM_POOL.LEN || info.data[0] !== DISC_AMM_POOL) continue;
+            out.set(chunk[j]!.market, decodePoolSummary(chunk[j]!.market, chunk[j]!.pool, info.data, true));
+          }
+        }
+      }
+    } catch {
+      // ER unreachable — keep base snapshots (stale but real)
+    }
+  }
+  return out;
+}
+
+/**
+ * Unique-trader counts per market from AmmPosition accounts. Dual scan
+ * (ONYX-owned + ER-delegated on base), each hit verified by re-deriving the
+ * position PDA from its stored (market, owner) — same unforgeability check
+ * as listMarkets. dataSlice keeps it cheap: 64 bytes per account.
+ */
+export async function getAmmPositionCounts(
+  marketPdas: string[],
+): Promise<{ perMarket: Map<string, number>; uniqueTraders: number }> {
+  const connection = getConnection();
+  const wanted = new Set(marketPdas);
+  const disc = { memcmp: { offset: 0, bytes: Buffer.from([DISC_AMM_POSITION]).toString("base64"), encoding: "base64" } } as const;
+  const slice = { dataSlice: { offset: 0, length: 72 }, filters: [disc] };
+  const [own, delegated] = await Promise.all([
+    connection.getProgramAccounts(ONYX_PROGRAM_ID, slice),
+    connection.getProgramAccounts(DELEGATION_PROGRAM_ID_PK, slice).catch(() => []),
+  ]);
+  const counts = new Map<string, Set<string>>();
+  const allOwners = new Set<string>();
+  for (const { pubkey, account } of [...own, ...delegated]) {
+    if (account.data.length < 72) continue;
+    const owner = new PublicKey(account.data.subarray(8, 40));
+    const market = new PublicKey(account.data.subarray(40, 72));
+    const marketStr = market.toBase58();
+    if (!wanted.has(marketStr)) continue;
+    if (!ammPositionPda(market, owner).equals(pubkey)) continue;
+    (counts.get(marketStr) ?? counts.set(marketStr, new Set()).get(marketStr)!).add(owner.toBase58());
+    allOwners.add(owner.toBase58());
+  }
+  return {
+    perMarket: new Map([...counts].map(([m, owners]) => [m, owners.size])),
+    uniqueTraders: allOwners.size,
+  };
+}
+
+/**
+ * Pool existence for one market regardless of delegation state: reads the
+ * pool PDA's raw account on BASE. While delegated, the base copy is owned by
+ * the Delegation Program with data intact (zeroed only during the delegate
+ * CPI itself), so `getAccountInfo != null` remains the reliable existence
+ * signal either way — this is what MarketDetail routes on.
+ */
+export async function ammPoolExists(market: PublicKey): Promise<boolean> {
+  const info = await getConnection().getAccountInfo(ammPoolPda(market));
+  return info !== null && info.data.length >= AMM_POOL_LEN;
+}
+
+/**
+ * Every AmmPosition owned by a wallet — dual scan (ONYX-owned + delegated to
+ * the ER), used by the portfolio. A session-trading user's positions are
+ * delegated, i.e. owned by the Delegation Program on base with STALE data —
+ * an ONYX-only scan would hide exactly the positions an active trader has.
+ * Delegated hits are PDA-verified, then their LIVE values re-read from the
+ * ER so the portfolio shows what the user actually holds right now.
+ */
+export async function listAmmPositionsForOwner(owner: PublicKey): Promise<(OnChainAmmPosition & { delegated: boolean })[]> {
+  const connection = getConnection();
+  const filters = [
+    { memcmp: { offset: 0, bytes: Buffer.from([DISC_AMM_POSITION]).toString("base64"), encoding: "base64" as const } },
+    { memcmp: { offset: 8, bytes: owner.toBase58(), encoding: "base58" as const } },
+  ];
+  const [own, delegatedRaw] = await Promise.all([
+    connection.getProgramAccounts(ONYX_PROGRAM_ID, { filters }),
+    connection.getProgramAccounts(DELEGATION_PROGRAM_ID_PK, { filters }).catch(() => []),
+  ]);
+  const out: (OnChainAmmPosition & { delegated: boolean })[] = own
+    .map(({ pubkey, account }) => decodeAmmPosition(pubkey, account.data))
+    .filter((p): p is OnChainAmmPosition => p !== null)
+    .map((p) => ({ ...p, delegated: false }));
+
+  const delegated = delegatedRaw
+    .map(({ pubkey, account }) => ({ pubkey, pos: decodeAmmPosition(pubkey, account.data) }))
+    .filter((x): x is { pubkey: PublicKey; pos: OnChainAmmPosition } => x.pos !== null)
+    // unforgeability: re-derive the PDA from the stored (market, owner)
+    .filter(({ pubkey, pos }) => ammPositionPda(new PublicKey(pos.market), new PublicKey(pos.owner)).equals(pubkey));
+
+  if (delegated.length > 0) {
+    try {
+      const { connection: er, isDelegated } = await resolveConnection(delegated[0]!.pubkey, connection);
+      const infos = isDelegated ? await er.getMultipleAccountsInfo(delegated.map((d) => d.pubkey)) : [];
+      for (const [i, d] of delegated.entries()) {
+        const live = infos[i] ? decodeAmmPosition(d.pubkey, infos[i]!.data as Buffer) : null;
+        out.push({ ...(live ?? d.pos), delegated: true });
+      }
+    } catch {
+      for (const d of delegated) out.push({ ...d.pos, delegated: true });
+    }
+  }
+  return out;
+}

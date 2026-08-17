@@ -1,0 +1,28 @@
+# deps
+node_modules/
+# build
+target/
+dist/
+.next/
+# env & keys
+.env
+.env.*
+!.env.example
+_keys/
+# local on-chain samples (price history / recorded trades) — never committed
+app/.data/
+*.keypair.json
+*keypair*.json
+*-keypair.json
+# logs / os
+*.log
+.DS_Store
+# vendored reference (kept out of our tree; re-clonable)
+vendor/
+# fixtures may contain large captured payloads; keep curated ones only
+fixtures/tmp/
+
+# transitions.dev Refine tooling (local dev aid, never committed)
+app/.agents/
+.refine-relay.json
+app/.refine-relay.json
