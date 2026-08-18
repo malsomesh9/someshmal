@@ -1,0 +1,18 @@
+[package]
+name = "slipstream-tests"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+slipstream = { path = "../../programs/slipstream", features = ["no-entrypoint"] }
+bytemuck = { workspace = true }
+
+[dev-dependencies]
+mollusk-svm = "0.12"
+# Match the granular solana v3 crates mollusk 0.12 resolves against (the
+# monolithic solana-sdk 2.x ships incompatible duplicate types).
+solana-account = "3"
+solana-address = "1"
+solana-instruction = "3"
+solana-program-error = "3"

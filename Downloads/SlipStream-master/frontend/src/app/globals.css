@@ -1,0 +1,605 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* Ambient backdrop — deep trading-desk gradient with aurora accents */
+.app-bg {
+  background:
+    radial-gradient(70% 60% at 12% -5%, rgba(16, 185, 129, 0.16), transparent 55%),
+    radial-gradient(55% 50% at 92% 105%, rgba(45, 212, 191, 0.10), transparent 60%),
+    linear-gradient(180deg, oklch(0.98 0 0), oklch(0.94 0 0));
+  background-attachment: fixed;
+}
+.dark .app-bg {
+  background:
+    radial-gradient(75% 65% at 12% -8%, rgba(16, 185, 129, 0.13), transparent 55%),
+    radial-gradient(60% 55% at 95% 108%, rgba(45, 212, 191, 0.07), transparent 62%),
+    radial-gradient(40% 40% at 50% 50%, rgba(20, 30, 28, 0.5), transparent 70%),
+    linear-gradient(180deg, #060a09, #020303 60%, #000000);
+  background-attachment: fixed;
+}
+
+/* Subtle animated grain/scanline texture overlay for depth */
+.app-bg::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 3px 3px;
+  opacity: 0.6;
+}
+
+/* Liquid glass surface — translucent, soft edge, layered depth */
+.glass-surface {
+  background: rgba(255, 255, 255, 0.62);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.7),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.4),
+    0 10px 40px rgba(0, 0, 0, 0.10);
+}
+.dark .glass-surface {
+  background: linear-gradient(180deg, rgba(18, 26, 24, 0.72), rgba(10, 14, 13, 0.72));
+  backdrop-filter: blur(20px) saturate(130%);
+  -webkit-backdrop-filter: blur(20px) saturate(130%);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
+    inset 0 0 0 1px rgba(16, 185, 129, 0.10),
+    0 12px 44px rgba(0, 0, 0, 0.6);
+}
+
+/* Premium card — the workhorse panel surface for the redesign */
+/* The liquid-glass read comes from three stacked cues:
+   1. a specular sheen in the top-left, carried as a background layer rather
+      than a pseudo-element so it can never paint over panel content;
+   2. a rim light on the top and sides with a darkened bottom edge, which is
+      what reads as a refracting bevel rather than a flat translucent card;
+   3. a saturated blur, so the aurora behind the page bleeds through tinted. */
+.panel {
+  position: relative;
+  border-radius: 18px;
+  background:
+    radial-gradient(130% 85% at 6% -14%, rgba(255, 255, 255, 0.09), transparent 58%),
+    linear-gradient(180deg, rgba(26, 36, 33, 0.62), rgba(9, 13, 12, 0.74));
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.1),
+    inset 1px 0 0 0 rgba(255, 255, 255, 0.04),
+    inset -1px 0 0 0 rgba(255, 255, 255, 0.04),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.3),
+    0 1px 2px rgba(0, 0, 0, 0.28),
+    0 14px 44px rgba(0, 0, 0, 0.46);
+  overflow: hidden;
+}
+.panel::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.45), transparent);
+  opacity: 0.7;
+}
+:root:not(.dark) .panel {
+  background:
+    radial-gradient(130% 85% at 6% -14%, rgba(255, 255, 255, 0.95), transparent 58%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(255, 255, 255, 0.72));
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.9),
+    0 1px 2px rgba(0, 0, 0, 0.05),
+    0 14px 44px rgba(0, 0, 0, 0.08);
+}
+
+/* Like .panel but does NOT clip overflow — for bars containing popovers/dropdowns
+   (e.g. the wallet menu) that must escape the container. */
+.panel-bar {
+  position: relative;
+  border-radius: 18px;
+  background:
+    radial-gradient(130% 85% at 6% -14%, rgba(255, 255, 255, 0.09), transparent 58%),
+    linear-gradient(180deg, rgba(26, 36, 33, 0.62), rgba(9, 13, 12, 0.74));
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.1),
+    inset 1px 0 0 0 rgba(255, 255, 255, 0.04),
+    inset -1px 0 0 0 rgba(255, 255, 255, 0.04),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.3),
+    0 1px 2px rgba(0, 0, 0, 0.28),
+    0 14px 44px rgba(0, 0, 0, 0.46);
+}
+:root:not(.dark) .panel-bar {
+  background:
+    radial-gradient(130% 85% at 6% -14%, rgba(255, 255, 255, 0.95), transparent 58%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(255, 255, 255, 0.72));
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.9),
+    0 1px 2px rgba(0, 0, 0, 0.05),
+    0 14px 44px rgba(0, 0, 0, 0.08);
+}
+
+/* Panel header label */
+.panel-title {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+/* Tabular figures for all numeric/price readouts */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "ss01" 1;
+}
+
+/* Emerald glow accent for primary CTAs */
+.glow-emerald {
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.35), 0 8px 30px rgba(16, 185, 129, 0.28);
+}
+
+/* Live pulse dot */
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
+  70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+.live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: #10b981;
+  animation: pulse-ring 2s infinite;
+}
+
+/* Value flash animations for live-updating numbers */
+@keyframes flash-up {
+  0% { color: #34d399; }
+  100% { color: inherit; }
+}
+@keyframes flash-down {
+  0% { color: #fb7185; }
+  100% { color: inherit; }
+}
+.flash-up { animation: flash-up 0.6s ease-out; }
+.flash-down { animation: flash-down 0.6s ease-out; }
+
+/* Depth-bar fill behind orderbook rows */
+.depth-bid { background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.14)); }
+.depth-ask { background: linear-gradient(90deg, transparent, rgba(244, 63, 94, 0.13)); }
+
+/* Gentle entrance */
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.rise-in { animation: rise-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* Every animation here is decorative: panel entrances, the live-dot pulse and
+   the price flash all restate something already visible statically. So honour
+   the OS setting by removing motion outright rather than just shortening it —
+   a shortened animation still moves, which is the thing being opted out of. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* `both` fill would otherwise leave these stuck at their opacity-0 start. */
+  .rise-in {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+
+/* Slim, visible scrollbar for the order-form/session column so the session-key
+   controls at the bottom are always reachable inside the viewport lock. */
+.slim-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+.slim-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.slim-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 9999px;
+}
+.slim-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Hide native number-input spin buttons (the up/down arrows looked broken on the
+   dark glass inputs). Users type or use the quick-pick buttons / leverage slider. */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* ── Docs web view (/docs) — clean readable prose on the dark theme ──────── */
+.doc-prose {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.95rem;
+  line-height: 1.7;
+  max-width: 46rem;
+}
+.doc-prose > *:first-child {
+  margin-top: 0;
+}
+.doc-prose h1 {
+  font-size: 1.9rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #fff;
+  margin: 0 0 1rem;
+  line-height: 1.2;
+}
+.doc-prose h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 2.25rem 0 0.85rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  letter-spacing: -0.01em;
+}
+.doc-prose h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  margin: 1.6rem 0 0.6rem;
+}
+.doc-prose h4 {
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 1.3rem 0 0.5rem;
+}
+.doc-prose p {
+  margin: 0.85rem 0;
+}
+.doc-prose a {
+  color: #34d399;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(52, 211, 153, 0.35);
+}
+.doc-prose a:hover {
+  color: #6ee7b7;
+  border-bottom-color: rgba(110, 231, 183, 0.6);
+}
+.doc-prose strong {
+  color: #fff;
+  font-weight: 650;
+}
+.doc-prose ul,
+.doc-prose ol {
+  margin: 0.85rem 0;
+  padding-left: 1.4rem;
+}
+.doc-prose li {
+  margin: 0.35rem 0;
+}
+.doc-prose ul {
+  list-style: disc;
+}
+.doc-prose ol {
+  list-style: decimal;
+}
+.doc-prose blockquote {
+  margin: 1.1rem 0;
+  padding: 0.6rem 1rem;
+  border-left: 3px solid rgba(16, 185, 129, 0.5);
+  background: rgba(16, 185, 129, 0.06);
+  border-radius: 0 0.5rem 0.5rem 0;
+  color: rgba(255, 255, 255, 0.85);
+}
+.doc-prose blockquote p {
+  margin: 0.25rem 0;
+}
+.doc-prose code {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 0.82em;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.12em 0.4em;
+  border-radius: 0.35rem;
+  color: #7dd3c0;
+}
+.doc-prose pre {
+  margin: 1.1rem 0;
+  padding: 1rem 1.1rem;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 0.6rem;
+  overflow-x: auto;
+  line-height: 1.55;
+}
+.doc-prose pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.82rem;
+}
+.doc-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.1rem 0;
+  font-size: 0.85rem;
+  display: block;
+  overflow-x: auto;
+}
+.doc-prose th,
+.doc-prose td {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+.doc-prose th {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  font-weight: 600;
+}
+.doc-prose hr {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin: 2rem 0;
+}
+.doc-prose img {
+  max-width: 100%;
+  border-radius: 0.5rem;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   LIGHT MODE COMPATIBILITY
+   The trading UI was built dark-first with many hardcoded `text-white` /
+   `bg-white/…` / `border-white/…` utilities. Rather than touch every component,
+   we REMAP those exact utilities to dark-ink equivalents when NOT in dark mode.
+   This keeps dark mode byte-identical (these rules only apply under
+   :root:not(.dark)) while making light mode readable.
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* Solid text colors → near-black, scaled by the original opacity step. */
+:root:not(.dark) .text-white { color: rgba(15, 23, 23, 0.95) !important; }
+:root:not(.dark) .text-white\/90 { color: rgba(15, 23, 23, 0.92) !important; }
+:root:not(.dark) .text-white\/85 { color: rgba(15, 23, 23, 0.88) !important; }
+:root:not(.dark) .text-white\/80 { color: rgba(15, 23, 23, 0.82) !important; }
+:root:not(.dark) .text-white\/75 { color: rgba(15, 23, 23, 0.78) !important; }
+:root:not(.dark) .text-white\/70 { color: rgba(15, 23, 23, 0.7) !important; }
+:root:not(.dark) .text-white\/60 { color: rgba(15, 23, 23, 0.62) !important; }
+:root:not(.dark) .text-white\/55 { color: rgba(15, 23, 23, 0.58) !important; }
+:root:not(.dark) .text-white\/50 { color: rgba(15, 23, 23, 0.5) !important; }
+:root:not(.dark) .text-white\/45 { color: rgba(15, 23, 23, 0.5) !important; }
+:root:not(.dark) .text-white\/40 { color: rgba(15, 23, 23, 0.45) !important; }
+:root:not(.dark) .text-white\/35 { color: rgba(15, 23, 23, 0.42) !important; }
+:root:not(.dark) .text-white\/30 { color: rgba(15, 23, 23, 0.38) !important; }
+
+/* White fills (chips, hover rows, segmented controls) → subtle dark tints. */
+:root:not(.dark) .bg-white\/20 { background-color: rgba(15, 23, 23, 0.14) !important; }
+:root:not(.dark) .bg-white\/10 { background-color: rgba(15, 23, 23, 0.08) !important; }
+:root:not(.dark) .bg-white\/5 { background-color: rgba(15, 23, 23, 0.05) !important; }
+:root:not(.dark) .bg-white\/\[0\.12\] { background-color: rgba(15, 23, 23, 0.1) !important; }
+:root:not(.dark) .bg-white\/\[0\.06\] { background-color: rgba(15, 23, 23, 0.05) !important; }
+:root:not(.dark) .bg-white\/\[0\.04\] { background-color: rgba(15, 23, 23, 0.04) !important; }
+:root:not(.dark) .bg-white\/\[0\.03\] { background-color: rgba(15, 23, 23, 0.035) !important; }
+:root:not(.dark) .bg-white\/\[0\.02\] { background-color: rgba(15, 23, 23, 0.025) !important; }
+
+/* White borders/dividers → dark hairlines. */
+:root:not(.dark) .border-white\/15 { border-color: rgba(15, 23, 23, 0.14) !important; }
+:root:not(.dark) .border-white\/10 { border-color: rgba(15, 23, 23, 0.1) !important; }
+:root:not(.dark) .border-white\/\[0\.08\] { border-color: rgba(15, 23, 23, 0.09) !important; }
+:root:not(.dark) .border-white\/\[0\.07\] { border-color: rgba(15, 23, 23, 0.08) !important; }
+:root:not(.dark) .border-white\/\[0\.06\] { border-color: rgba(15, 23, 23, 0.08) !important; }
+:root:not(.dark) .border-white\/\[0\.05\] { border-color: rgba(15, 23, 23, 0.07) !important; }
+
+/* Hover variants used on rows/buttons. */
+:root:not(.dark) .hover\:bg-white\/10:hover { background-color: rgba(15, 23, 23, 0.08) !important; }
+:root:not(.dark) .hover\:bg-white\/\[0\.04\]:hover { background-color: rgba(15, 23, 23, 0.05) !important; }
+:root:not(.dark) .hover\:bg-white\/\[0\.02\]:hover { background-color: rgba(15, 23, 23, 0.035) !important; }
+
+/* The glass-surface in light mode (order form / landing cards). */
+:root:not(.dark) .glass-surface {
+  background: rgba(255, 255, 255, 0.75) !important;
+}
+
+/* Docs sidebar/back-link contrast in light mode (the header uses bg-black/40). */
+:root:not(.dark) .doc-prose {
+  color: rgba(15, 23, 23, 0.82);
+}
+:root:not(.dark) .bg-black\/40 {
+  background-color: rgba(255, 255, 255, 0.7) !important;
+}
+:root:not(.dark) .bg-black\/60 {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* Doc prose elements that hardcode #fff / light text → dark ink in light mode. */
+:root:not(.dark) .doc-prose h1,
+:root:not(.dark) .doc-prose h2,
+:root:not(.dark) .doc-prose h3,
+:root:not(.dark) .doc-prose h4,
+:root:not(.dark) .doc-prose strong { color: rgba(10, 15, 15, 0.95); }
+:root:not(.dark) .doc-prose th { color: rgba(10, 15, 15, 0.95); }
+:root:not(.dark) .doc-prose code {
+  background: rgba(15, 23, 23, 0.06);
+  border-color: rgba(15, 23, 23, 0.1);
+  color: #0f766e;
+}
+:root:not(.dark) .doc-prose pre {
+  background: rgba(15, 23, 23, 0.04);
+  border-color: rgba(15, 23, 23, 0.1);
+}
+:root:not(.dark) .doc-prose pre code { color: rgba(15, 23, 23, 0.85); }
+:root:not(.dark) .doc-prose a { color: #0f766e; }
+:root:not(.dark) .doc-prose blockquote { color: rgba(15, 23, 23, 0.8); }
+:root:not(.dark) .doc-prose th,
+:root:not(.dark) .doc-prose td { border-color: rgba(15, 23, 23, 0.12); }
+:root:not(.dark) .doc-prose hr { border-color: rgba(15, 23, 23, 0.1); }
+
+/* The emerald accent tints used for badges read fine on both themes; only the
+   neutral whites needed remapping above. */
+
+/* Mermaid diagram blocks in the docs web view. Before the client runtime swaps
+   the source for SVG, keep the raw graph text hidden so users don't see code. */
+.doc-prose pre.mermaid {
+  background: transparent;
+  border: none;
+  padding: 0.5rem 0;
+  margin: 1.25rem 0;
+  text-align: center;
+  color: transparent; /* hide raw source until rendered */
+  overflow-x: auto;
+}
+.doc-prose pre.mermaid svg {
+  max-width: 100%;
+  height: auto;
+  display: inline-block;
+}
+/* Once mermaid processes a node it sets data-processed="true". */
+.doc-prose pre.mermaid[data-processed="true"] { color: inherit; }

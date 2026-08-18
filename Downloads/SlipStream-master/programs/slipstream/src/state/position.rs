@@ -1,0 +1,96 @@
+use bytemuck::{Pod, Zeroable};
+use pinocchio::{account_info::AccountInfo, program_error::ProgramError};
+
+use super::DISC_POSITION;
+
+#[repr(C)]
+#[derive(Clone, Copy, Pod, Zeroable)]
+pub struct Position {
+    pub discriminator: u8,
+    pub bump: u8,
+    pub market_index: u16,
+    pub _padding1: [u8; 4],
+    pub owner: [u8; 32],
+    pub size: i64,
+    pub entry_price: u64,
+    pub collateral: u64,
+    pub realized_pnl: i64,
+    pub open_slot: u64,
+    // i128 split into two i64s for cross-platform Pod compatibility
+    pub funding_index_snapshot_lo: i64,
+    pub funding_index_snapshot_hi: i64,
+}
+
+impl Position {
+    pub const LEN: usize = core::mem::size_of::<Self>();
+
+    pub fn get_funding_index_snapshot(&self) -> i128 {
+        ((self.funding_index_snapshot_hi as i128) << 64)
+            | (self.funding_index_snapshot_lo as u64 as i128)
+    }
+
+    pub fn set_funding_index_snapshot(&mut self, value: i128) {
+        self.funding_index_snapshot_lo = value as i64;
+        self.funding_index_snapshot_hi = (value >> 64) as i64;
+    }
+
+    pub fn from_account_info(account: &AccountInfo) -> Result<&Self, ProgramError> {
+        let data = unsafe { account.borrow_data_unchecked() };
+        if data.len() < Self::LEN {
+            return Err(ProgramError::InvalidAccountData);
+        }
+        if data[0] != DISC_POSITION {
+            return Err(ProgramError::InvalidAccountData);
+        }
+        Ok(bytemuck::from_bytes(&data[..Self::LEN]))
+    }
+
+    // The unchecked borrow hands out &mut from &AccountInfo; sound because the
+    // runtime guarantees each writable account's data is exclusively borrowed
+    // per instruction.
+    #[allow(clippy::mut_from_ref)]
+    pub fn from_account_info_mut(account: &AccountInfo) -> Result<&mut Self, ProgramError> {
+        let data = unsafe { account.borrow_mut_data_unchecked() };
+        if data.len() < Self::LEN {
+            return Err(ProgramError::InvalidAccountData);
+        }
+        // Type check on the WRITE path. Without it, any program-owned account of a
+        // compatible size can be cast to this type and overwritten field-by-field
+        // (Position and TradingCredit are both 96 bytes with `owner` at offset 8,
+        // so authorize_session could rewrite a Position's collateral).
+        if data[0] != DISC_POSITION {
+            return Err(ProgramError::InvalidAccountData);
+        }
+        Ok(bytemuck::from_bytes_mut(&mut data[..Self::LEN]))
+    }
+
+    /// As `from_account_info_mut`, but also accepts a freshly created account whose
+    /// discriminator is still zero. Initialize/upsert paths only.
+    #[allow(clippy::mut_from_ref)]
+    pub fn from_account_info_mut_or_init(account: &AccountInfo) -> Result<&mut Self, ProgramError> {
+        let data = unsafe { account.borrow_mut_data_unchecked() };
+        if data.len() < Self::LEN {
+            return Err(ProgramError::InvalidAccountData);
+        }
+        if data[0] != 0 && data[0] != DISC_POSITION {
+            return Err(ProgramError::InvalidAccountData);
+        }
+        Ok(bytemuck::from_bytes_mut(&mut data[..Self::LEN]))
+    }
+
+    pub fn is_long(&self) -> bool {
+        self.size > 0
+    }
+
+    pub fn is_short(&self) -> bool {
+        self.size < 0
+    }
+
+    pub fn abs_size(&self) -> u64 {
+        self.size.unsigned_abs()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.size == 0
+    }
+}
